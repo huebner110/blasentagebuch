@@ -333,6 +333,12 @@
   input:checked + .slider-tg{ background: var(--teal); }
   input:checked + .slider-tg:before{ transform: translateX(19px); }
 
+  /* Help sheet */
+  .help-item{ margin-bottom:16px; }
+  .help-item:last-of-type{ margin-bottom:0; }
+  .help-item h4{ font-family: var(--font-display); font-size:14.5px; color: var(--teal-dark); margin:0 0 5px; }
+  .help-item p{ font-size:13px; color: var(--text-muted); line-height:1.5; margin:0; }
+
   .toast{
     position: fixed; left:50%; bottom: calc(96px + var(--safe-bottom)); transform: translateX(-50%) translateY(20px);
     background: var(--teal-deep); color:#fff; padding: 11px 20px; border-radius: 999px; font-size:13px; font-weight:700;
@@ -580,6 +586,39 @@
     </div>
     <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
   </div>
+
+  <div class="field" style="margin-top:22px; border-top:1px solid var(--line); padding-top:18px; margin-bottom:0;">
+    <label>Anleitung</label>
+    <div class="tdesc" style="margin-bottom:10px;">Kurze Erklärung zur Bedienung der App.</div>
+    <button class="btn ghost" id="btnShowHelp" style="width:100%;">Anleitung anzeigen</button>
+  </div>
+</div>
+
+<!-- HELP SHEET -->
+<div class="sheet" id="sheetHelp">
+  <div class="sheet-handle"></div>
+  <h3>Anleitung</h3>
+  <div class="help-item">
+    <h4>Trinken eintragen</h4>
+    <p>Über den Button "Trinken" auf dem Tab "Heute" Menge in ml eingeben. Die Uhrzeit wird automatisch gesetzt, kann aber angepasst werden.</p>
+  </div>
+  <div class="help-item">
+    <h4>Verlust eintragen</h4>
+    <p>Über den Button "Verlust" Stärke (leicht/mittel/stark) wählen, optional Aktivität und Notiz angeben. Uhrzeit wird automatisch gesetzt, kann angepasst werden.</p>
+  </div>
+  <div class="help-item">
+    <h4>Toilettengang eintragen</h4>
+    <p>Über den Button "Toilettengang" Menge (wenig/mittel/viel) wählen, optional ml-Schätzung und Notiz angeben.</p>
+  </div>
+  <div class="help-item">
+    <h4>PDF-Bericht erstellen</h4>
+    <p>Im Tab "Bericht" Zeitraum wählen und auf "Als PDF exportieren" tippen. Die PDF-Datei enthält Diagramme und eine tabellarische Auflistung aller Einträge im Zeitraum – zum Ausdrucken oder Teilen mit der Ärztin.</p>
+  </div>
+  <div class="help-item">
+    <h4>Backup: Exportieren / Importieren</h4>
+    <p>In den Einstellungen unter "Daten sichern": "Exportieren" speichert alle Einträge als Datei. "Importieren" lädt eine zuvor exportierte Datei wieder ein, vorhandene Einträge bleiben dabei erhalten, neue werden ergänzt.</p>
+  </div>
+  <button class="btn primary" id="helpClose" style="width:100%; margin-top:6px;">Schließen</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1139,7 +1178,7 @@
   });
 
   // ---------- Sheets ----------
-  var sheets = ['sheetWater','sheetLeak','sheetToilet','sheetDetail','sheetSettings'].map(function(id){ return document.getElementById(id); });
+  var sheets = ['sheetWater','sheetLeak','sheetToilet','sheetDetail','sheetSettings','sheetHelp'].map(function(id){ return document.getElementById(id); });
   function openSheet(id){
     sheets.forEach(function(s){ s.classList.remove('show'); });
     document.getElementById(id).classList.add('show');
@@ -1300,6 +1339,12 @@
       Notification.requestPermission();
     }
   });
+
+  // ---------- Help ----------
+  document.getElementById('btnShowHelp').addEventListener('click', function(){
+    openSheet('sheetHelp');
+  });
+  document.getElementById('helpClose').addEventListener('click', closeSheets);
 
   // ---------- Export / Import ----------
   document.getElementById('btnExportData').addEventListener('click', function(){
