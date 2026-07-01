@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blasentagebuch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #EEF6F7;
+    --surface: #FFFFFF;
+    --surface-soft: #E3F1F3;
+    --teal: #1F7A8C;
+    --teal-dark: #123F49;
+    --teal-deep: #14505C;
+    --turquoise: #6FC3D1;
+    --turquoise-soft: #CDEBEF;
+    --sand: #DE9B49;
+    --sand-soft: #FBE8D0;
+    --text: #16302F ;
+    --text-muted: #5C7A7E;
+    --line: #D7E7E9;
+    --shadow: 0 4px 18px rgba(18,63,73,0.09);
+    --shadow-lg: 0 10px 30px rgba(18,63,73,0.14);
+    --radius-l: 22px;
+    --radius-m: 16px;
+    --radius-s: 10px;
+    --font-display: 'Nunito', -apple-system, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 85% -10%, var(--turquoise-soft) 0%, transparent 45%);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+  #app{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: calc(84px + var(--safe-bottom));
+    position: relative;
+  }
+  :focus-visible{ outline: 2.5px solid var(--teal); outline-offset: 2px; }
+
+  /* Header */
+  header.top{
+    padding: calc(22px + var(--safe-top)) 22px 18px;
+  }
+  .eyebrow{
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 2px;
+  }
+  h1.title{
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 25px;
+    margin: 0;
+    color: var(--teal-dark);
+    letter-spacing: -0.01em;
+  }
+  .settings-btn{
+    position: absolute;
+    top: calc(22px + var(--safe-top));
+    right: 20px;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    display: flex; align-items:center; justify-content:center;
+    color: var(--teal-deep);
+    cursor: pointer;
+  }
+  .settings-btn:active{ transform: scale(.92); }
+
+  /* Signature: hydration ring */
+  .ring-card{
+    margin: 6px 22px 18px;
+    background: linear-gradient(165deg, var(--teal-deep) 0%, var(--teal) 62%, var(--turquoise) 130%);
+    border-radius: var(--radius-l);
+    padding: 26px 22px 22px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .ring-wrap{ position: relative; width: 108px; height: 108px; flex: none; }
+  .ring-wrap svg{ width:100%; height:100%; transform: rotate(-90deg); }
+  .ring-track{ fill:none; stroke: rgba(255,255,255,0.22); stroke-width: 9; }
+  .ring-fill{ fill:none; stroke:#fff; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.4,1.4,.4,1); }
+  .ring-center{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .ring-center .val{ font-family: var(--font-display); font-weight:800; font-size:19px; line-height:1; }
+  .ring-center .unit{ font-size: 10.5px; opacity:.85; margin-top:2px; }
+  .ring-info{ flex:1; min-width:0; }
+  .ring-info .label{ font-size: 12.5px; opacity: .85; margin-bottom: 4px; }
+  .ring-info .big{ font-family: var(--font-display); font-weight: 800; font-size: 21px; }
+  .ring-info .sub{ font-size: 12.5px; opacity: .9; margin-top: 6px; line-height:1.4; }
+  .last-entry-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:10px; padding: 5px 10px;
+    background: rgba(255,255,255,0.16);
+    border-radius: 999px; font-size: 11.5px; font-weight:600;
+  }
+  .last-entry-pill.warn{ background: rgba(222,155,73,0.85); }
+  .dot{ width:6px; height:6px; border-radius:50%; background:#fff; }
+
+  /* Quick actions */
+  .quick-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin: 0 22px 22px;
+  }
+  .quick-btn{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    padding: 14px 8px 12px;
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    cursor:pointer; box-shadow: var(--shadow);
+    font-family: var(--font-body); color: var(--text);
+    transition: transform .12s ease;
+  }
+  .quick-btn:active{ transform: scale(.95); }
+  .quick-btn .ic{
+    width:40px; height:40px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .quick-btn.water .ic{ background: var(--surface-soft); color: var(--teal); }
+  .quick-btn.leak .ic{ background: var(--sand-soft); color: var(--sand); }
+  .quick-btn.toilet .ic{ background: var(--turquoise-soft); color: var(--teal-deep); }
+  .quick-btn span.lbl{ font-size: 12.5px; font-weight: 700; text-align:center; }
+
+  /* Section */
+  section.body-section{ padding: 0 22px; }
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin: 4px 0 12px;
+  }
+  .section-head h2{
+    font-family: var(--font-display); font-size: 16.5px; font-weight: 800; margin:0; color: var(--teal-dark);
+  }
+  .section-head .count{ font-size: 12.5px; color: var(--text-muted); font-weight:600; }
+
+  /* Entry list */
+  .entry{
+    display:flex; align-items:flex-start; gap: 12px;
+    background: var(--surface); border-radius: var(--radius-m);
+    padding: 13px 14px; margin-bottom: 9px; box-shadow: var(--shadow);
+    cursor: pointer;
+  }
+  .entry .ic{
+    width:36px; height:36px; border-radius: 10px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .entry.water .ic{ background: var(--surface-soft); color: var(--teal); }
+  .entry.leak .ic{ background: var(--sand-soft); color: var(--sand); }
+  .entry.toilet .ic{ background: var(--turquoise-soft); color: var(--teal-deep); }
+  .entry .main{ flex:1; min-width:0; }
+  .entry .row1{ display:flex; justify-content:space-between; gap:8px; }
+  .entry .title{ font-weight:700; font-size: 14.5px; }
+  .entry .time{ font-size:12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .entry .meta{ font-size: 12.5px; color: var(--text-muted); margin-top:2px; }
+  .entry .sev-pill{
+    display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin-top:5px;
+  }
+  .sev-leicht{ background:#F2E4D0; color:#8A5B1E; }
+  .sev-mittel{ background:#F3D6B0; color:#8F5514; }
+  .sev-stark{ background:#F0BE8C; color:#7A4108; }
+
+  .day-group{ margin-bottom: 22px; }
+  .day-header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding: 2px 2px 10px;
+  }
+  .day-header .dname{ font-weight:800; font-size:14px; color: var(--teal-dark); font-family: var(--font-display);}
+  .day-header .dsum{ font-size:11.5px; color: var(--text-muted); font-weight:600; }
+
+  .empty-state{
+    text-align:center; padding: 34px 20px; color: var(--text-muted);
+  }
+  .empty-state .ic{ font-size: 30px; margin-bottom: 8px; }
+  .empty-state p{ font-size: 13.5px; margin: 4px 0 0; line-height:1.5; }
+
+  /* Bottom nav */
+  nav.tabbar{
+    position: fixed; left:0; right:0; bottom:0;
+    max-width: 480px; margin: 0 auto;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--line);
+    display:flex; padding: 8px 10px calc(10px + var(--safe-bottom));
+    z-index: 40;
+  }
+  nav.tabbar button{
+    flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding: 6px 0; color: var(--text-muted); font-family: var(--font-body); font-size: 11px; font-weight:600;
+    cursor:pointer;
+  }
+  nav.tabbar button.active{ color: var(--teal); }
+  nav.tabbar button svg{ width:22px; height:22px; }
+
+  /* Sheet (bottom modal for forms) */
+  .overlay{
+    position: fixed; inset:0; background: rgba(18,63,73,0.38);
+    z-index: 60; opacity:0; pointer-events:none; transition: opacity .22s ease;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position: fixed; left:0; right:0; bottom:0; z-index:61;
+    max-width:480px; margin:0 auto;
+    background: var(--surface);
+    border-radius: 26px 26px 0 0;
+    padding: 10px 22px calc(24px + var(--safe-bottom));
+    transform: translateY(105%);
+    transition: transform .28s cubic-bezier(.32,.72,0,1);
+    max-height: 88vh; overflow-y:auto;
+  }
+  .sheet.show{ transform: translateY(0); }
+  .sheet-handle{ width:38px; height:4px; background: var(--line); border-radius:99px; margin: 8px auto 14px; }
+  .sheet h3{ font-family: var(--font-display); font-size:18px; margin: 0 0 16px; color: var(--teal-dark); }
+  .field{ margin-bottom: 16px; }
+  .field label{ display:block; font-size: 12.5px; font-weight:700; color: var(--text-muted); margin-bottom:7px; }
+  .num-input{
+    width:100%; font-size: 22px; font-weight:800; font-family: var(--font-display);
+    border: 1.5px solid var(--line); border-radius: var(--radius-s); padding: 12px 14px;
+    background: var(--bg); color: var(--text);
+  }
+  .time-input, .text-input, select.text-input{
+    width:100%; font-size: 15px; font-weight:600; font-family: var(--font-body);
+    border: 1.5px solid var(--line); border-radius: var(--radius-s); padding: 11px 13px;
+    background: var(--bg); color: var(--text);
+  }
+  textarea.text-input{ min-height: 64px; resize: vertical; font-family: var(--font-body); }
+  .pill-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill{
+    padding: 9px 15px; border-radius: 999px; border: 1.5px solid var(--line);
+    background: var(--bg); font-weight:700; font-size:13.5px; color: var(--text-muted);
+    cursor:pointer;
+  }
+  .pill.selected{ background: var(--teal); border-color: var(--teal); color:#fff; }
+  .pill.selected.sand{ background: var(--sand); border-color: var(--sand); }
+  .btn-row{ display:flex; gap:10px; margin-top: 6px; }
+  .btn{
+    flex:1; padding: 13px; border-radius: var(--radius-s); border:none;
+    font-weight:800; font-size:14.5px; font-family: var(--font-body); cursor:pointer;
+  }
+  .btn.primary{ background: var(--teal); color:#fff; }
+  .btn.primary:active{ background: var(--teal-deep); }
+  .btn.ghost{ background: var(--bg); color: var(--text-muted); }
+  .btn.danger{ background: #FBEAE4; color:#B24A32; }
+  .btn:disabled{ opacity:.5; }
+
+  /* Report tab */
+  .range-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .range-row .field{ flex:1; margin-bottom:0; }
+  .report-summary{
+    background: var(--surface); border-radius: var(--radius-m); padding: 16px; margin-bottom:16px;
+    box-shadow: var(--shadow); display:flex; gap:16px;
+  }
+  .report-summary .stat{ flex:1; text-align:center; }
+  .report-summary .stat b{ display:block; font-family: var(--font-display); font-size:19px; color: var(--teal-dark); }
+  .report-summary .stat span{ font-size:11px; color: var(--text-muted); font-weight:600; }
+  .note-box{
+    background: var(--surface-soft); border-radius: var(--radius-s); padding: 12px 14px; font-size: 12.5px;
+    color: var(--teal-deep); line-height:1.5; margin-bottom:16px;
+  }
+
+  /* Settings sheet extras */
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; padding: 10px 0; }
+  .toggle-row .tlabel{ font-weight:700; font-size:14px; }
+  .toggle-row .tdesc{ font-size:12px; color: var(--text-muted); margin-top:2px; }
+  .switch{ position:relative; width:46px; height:27px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider-tg{
+    position:absolute; cursor:pointer; inset:0; background: var(--line); border-radius:99px; transition:.2s;
+  }
+  .slider-tg:before{
+    content:""; position:absolute; height:21px; width:21px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  }
+  input:checked + .slider-tg{ background: var(--teal); }
+  input:checked + .slider-tg:before{ transform: translateX(19px); }
+
+  .toast{
+    position: fixed; left:50%; bottom: calc(96px + var(--safe-bottom)); transform: translateX(-50%) translateY(20px);
+    background: var(--teal-deep); color:#fff; padding: 11px 20px; border-radius: 999px; font-size:13px; font-weight:700;
+    box-shadow: var(--shadow-lg); z-index: 80; opacity:0; pointer-events:none; transition: all .25s ease;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <button class="settings-btn" id="btnSettings" aria-label="Einstellungen">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+
+  <header class="top">
+    <p class="eyebrow" id="dateLabel">–</p>
+    <h1 class="title">Blasentagebuch</h1>
+  </header>
+
+  <div class="ring-card">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 108 108">
+        <circle class="ring-track" cx="54" cy="54" r="47"></circle>
+        <circle class="ring-fill" id="ringFill" cx="54" cy="54" r="47" stroke-dasharray="295.3" stroke-dashoffset="295.3"></circle>
+      </svg>
+      <div class="ring-center">
+        <div class="val" id="ringVal">0</div>
+        <div class="unit">ml</div>
+      </div>
+    </div>
+    <div class="ring-info">
+      <div class="label">Trinkmenge heute</div>
+      <div class="big" id="ringGoalText">Ziel 1500 ml</div>
+      <div class="sub" id="ringExtra">0 Toilettengänge · 0 Verluste heute</div>
+      <div class="last-entry-pill" id="lastEntryPill"><span class="dot"></span><span id="lastEntryText">Noch kein Eintrag heute</span></div>
+    </div>
+  </div>
+
+  <div class="quick-grid">
+    <button class="quick-btn water" id="btnAddWater">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69s-7 7.44-7 11.31a7 7 0 0 0 14 0c0-3.87-7-11.31-7-11.31z"></path></svg></span>
+      <span class="lbl">Trinken</span>
+    </button>
+    <button class="quick-btn leak" id="btnAddLeak">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69s-7 7.44-7 11.31a7 7 0 0 0 14 0c0-3.87-7-11.31-7-11.31z"></path><path d="M9 14a3 3 0 0 0 3 3" stroke-dasharray="2 2"></path></svg></span>
+      <span class="lbl">Verlust</span>
+    </button>
+    <button class="quick-btn toilet" id="btnAddToilet">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M6 12V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7"></path><path d="M5 12l1 8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-8"></path></svg></span>
+      <span class="lbl">Toilette</span>
+    </button>
+  </div>
+
+  <!-- TODAY TAB -->
+  <section class="body-section" id="tabToday">
+    <div class="section-head"><h2>Heute</h2><span class="count" id="todayCount"></span></div>
+    <div id="todayList"></div>
+  </section>
+
+  <!-- HISTORY TAB -->
+  <section class="body-section" id="tabHistory" style="display:none;">
+    <div class="section-head"><h2>Verlauf</h2></div>
+    <div id="historyList"></div>
+  </section>
+
+  <!-- REPORT TAB -->
+  <section class="body-section" id="tabReport" style="display:none;">
+    <div class="section-head"><h2>Bericht für die Ärztin</h2></div>
+    <div class="range-row">
+      <div class="field"><label for="repFrom">Von</label><input type="date" id="repFrom" class="time-input"></div>
+      <div class="field"><label for="repTo">Bis</label><input type="date" id="repTo" class="time-input"></div>
+    </div>
+    <div class="report-summary" id="reportSummary"></div>
+    <div class="note-box">Der Bericht enthält alle Einträge im gewählten Zeitraum: Trinkmenge, Toilettengänge und Verluste inkl. Aktivität. Er wird als PDF-Datei zum Teilen erzeugt.</div>
+    <button class="btn primary" id="btnExportPdf" style="width:100%; margin-bottom:20px;">Als PDF exportieren</button>
+    <div class="section-head" style="margin-top:4px;"><h2>Vorschau</h2></div>
+    <div id="reportList"></div>
+  </section>
+
+</div>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-tab="today">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"></path><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"></path></svg>
+    Heute
+  </button>
+  <button class="tab-btn" data-tab="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+    Verlauf
+  </button>
+  <button class="tab-btn" data-tab="report">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15h6"></path><path d="M9 11h2"></path></svg>
+    Bericht
+  </button>
+</nav>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- WATER SHEET -->
+<div class="sheet" id="sheetWater">
+  <div class="sheet-handle"></div>
+  <h3>Trinken eintragen</h3>
+  <div class="field">
+    <label for="waterAmount">Menge (ml)</label>
+    <input type="number" inputmode="numeric" id="waterAmount" class="num-input" placeholder="z. B. 250" min="0">
+  </div>
+  <div class="field">
+    <label for="waterTime">Uhrzeit</label>
+    <input type="time" id="waterTime" class="time-input">
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" id="waterCancel">Abbrechen</button>
+    <button class="btn primary" id="waterSave">Speichern</button>
+  </div>
+</div>
+
+<!-- LEAK SHEET -->
+<div class="sheet" id="sheetLeak">
+  <div class="sheet-handle"></div>
+  <h3>Verlust eintragen</h3>
+  <div class="field">
+    <label>Stärke</label>
+    <div class="pill-row" id="leakSeverityRow">
+      <div class="pill sand" data-val="leicht">leicht</div>
+      <div class="pill sand" data-val="mittel">mittel</div>
+      <div class="pill sand" data-val="stark">stark</div>
+    </div>
+  </div>
+  <div class="field">
+    <label for="leakActivity">Aktivität</label>
+    <select id="leakActivity" class="text-input">
+      <option value="">Bitte wählen</option>
+      <option>Husten</option>
+      <option>Niesen</option>
+      <option>Heben</option>
+      <option>Sport</option>
+      <option>Lachen</option>
+      <option>Gehen / Aufstehen</option>
+      <option>Unbekannt</option>
+      <option value="__custom">Sonstiges …</option>
+    </select>
+  </div>
+  <div class="field" id="leakActivityCustomWrap" style="display:none;">
+    <label for="leakActivityCustom">Aktivität (eigene Angabe)</label>
+    <input type="text" id="leakActivityCustom" class="text-input" placeholder="z. B. Treppensteigen">
+  </div>
+  <div class="field">
+    <label for="leakTime">Uhrzeit</label>
+    <input type="time" id="leakTime" class="time-input">
+  </div>
+  <div class="field">
+    <label for="leakNote">Notiz (optional)</label>
+    <textarea id="leakNote" class="text-input" placeholder="Weitere Angaben …"></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" id="leakCancel">Abbrechen</button>
+    <button class="btn primary" id="leakSave">Speichern</button>
+  </div>
+</div>
+
+<!-- TOILET SHEET -->
+<div class="sheet" id="sheetToilet">
+  <div class="sheet-handle"></div>
+  <h3>Toilettengang eintragen</h3>
+  <div class="field">
+    <label>Menge (geschätzt)</label>
+    <div class="pill-row" id="toiletAmountRow">
+      <div class="pill" data-val="wenig">wenig</div>
+      <div class="pill" data-val="mittel">mittel</div>
+      <div class="pill" data-val="viel">viel</div>
+    </div>
+  </div>
+  <div class="field">
+    <label for="toiletMl">ml-Schätzung (optional)</label>
+    <input type="number" inputmode="numeric" id="toiletMl" class="num-input" placeholder="z. B. 200" min="0">
+  </div>
+  <div class="field">
+    <label for="toiletTime">Uhrzeit</label>
+    <input type="time" id="toiletTime" class="time-input">
+  </div>
+  <div class="field">
+    <label for="toiletNote">Notiz (optional)</label>
+    <textarea id="toiletNote" class="text-input" placeholder="Weitere Angaben …"></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn ghost" id="toiletCancel">Abbrechen</button>
+    <button class="btn primary" id="toiletSave">Speichern</button>
+  </div>
+</div>
+
+<!-- ENTRY DETAIL / EDIT SHEET -->
+<div class="sheet" id="sheetDetail">
+  <div class="sheet-handle"></div>
+  <h3 id="detailTitle">Eintrag</h3>
+  <div id="detailBody"></div>
+  <div class="btn-row">
+    <button class="btn danger" id="detailDelete">Löschen</button>
+    <button class="btn ghost" id="detailClose">Schließen</button>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet" id="sheetSettings">
+  <div class="sheet-handle"></div>
+  <h3>Einstellungen</h3>
+  <div class="field">
+    <label for="setGoal">Trinkziel pro Tag (ml)</label>
+    <input type="number" inputmode="numeric" id="setGoal" class="num-input">
+  </div>
+  <div class="field">
+    <label for="setName">Name für den Bericht (optional)</label>
+    <input type="text" id="setName" class="text-input" placeholder="z. B. Vorname">
+  </div>
+  <div class="toggle-row">
+    <div>
+      <div class="tlabel">Erinnerung</div>
+      <div class="tdesc">Hinweis, wenn lange nichts eingetragen wurde. Funktioniert nur, solange die App geöffnet ist – echte Hintergrund-Benachrichtigungen sind bei einer Web-App auf dem iPhone technisch nicht möglich.</div>
+    </div>
+    <label class="switch"><input type="checkbox" id="setReminder"><span class="slider-tg"></span></label>
+  </div>
+  <div class="field" style="margin-top:10px;">
+    <label for="setInterval">Erinnerung nach (Stunden ohne Eintrag)</label>
+    <input type="number" inputmode="numeric" id="setInterval" class="num-input" min="1" max="12">
+  </div>
+  <div class="btn-row" style="margin-top:8px;">
+    <button class="btn ghost" id="settingsClose">Schließen</button>
+    <button class="btn primary" id="settingsSave">Speichern</button>
+  </div>
+
+  <div class="field" style="margin-top:22px; border-top:1px solid var(--line); padding-top:18px;">
+    <label>Daten sichern</label>
+    <div class="tdesc" style="margin-bottom:10px;">Alle Einträge und Einstellungen als Datei sichern oder auf einem anderen Gerät wiederherstellen. Beim Import werden vorhandene Einträge behalten, neue ergänzt.</div>
+    <div class="btn-row">
+      <button class="btn ghost" id="btnExportData">Exportieren</button>
+      <button class="btn ghost" id="btnImportData">Importieren</button>
+    </div>
+    <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_ENTRIES = 'blasentagebuch_entries';
+  var STORAGE_SETTINGS = 'blasentagebuch_settings';
+  var RING_CIRCUMFERENCE = 295.3;
+
+  var state = {
+    entries: [],
+    settings: { waterGoal: 1500, patientName: '', reminderEnabled: true, reminderIntervalHours: 3 },
+    activeTab: 'today',
+    editingEntryId: null,
+    leakSeverity: null,
+    toiletAmount: null,
+    loaded: false
+  };
+
+  var el = {};
+  ['dateLabel','ringFill','ringVal','ringGoalText','ringExtra','lastEntryPill','lastEntryText',
+   'todayList','todayCount','historyList','reportList','reportSummary','repFrom','repTo',
+   'overlay','toast'].forEach(function(id){ el[id] = document.getElementById(id); });
+
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  function todayKey(d){ d = d || new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function timeNow(){ var d = new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function fmtDayLabel(key){
+    var parts = key.split('-').map(Number);
+    var d = new Date(parts[0], parts[1]-1, parts[2]);
+    var todayK = todayKey();
+    var yestD = new Date(); yestD.setDate(yestD.getDate()-1);
+    if(key === todayK) return 'Heute';
+    if(key === todayKey(yestD)) return 'Gestern';
+    return d.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'2-digit' });
+  }
+  function uid(){ return 'e_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  function showToast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    setTimeout(function(){ el.toast.classList.remove('show'); }, 2200);
+  }
+
+  // ---------- Storage (localStorage, gerätegebunden) ----------
+  async function loadData(){
+    try{
+      var raw = localStorage.getItem(STORAGE_ENTRIES);
+      state.entries = raw ? JSON.parse(raw) : [];
+    }catch(e){ state.entries = []; }
+    try{
+      var rawS = localStorage.getItem(STORAGE_SETTINGS);
+      if(rawS){ state.settings = Object.assign(state.settings, JSON.parse(rawS)); }
+    }catch(e){ /* keep defaults */ }
+    state.loaded = true;
+  }
+  async function saveEntries(){
+    try{ localStorage.setItem(STORAGE_ENTRIES, JSON.stringify(state.entries)); }
+    catch(e){ showToast('Speichern fehlgeschlagen'); }
+  }
+  async function saveSettings(){
+    try{ localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(state.settings)); }
+    catch(e){ showToast('Speichern fehlgeschlagen'); }
+  }
+
+  // ---------- Derived data ----------
+  function entriesForDay(key){
+    return state.entries.filter(function(e){ return e.timestamp.slice(0,10) === key; })
+      .sort(function(a,b){ return a.timestamp.localeCompare(b.timestamp); });
+  }
+  function waterTotalForDay(key){
+    return entriesForDay(key).filter(function(e){ return e.type==='water'; })
+      .reduce(function(s,e){ return s + (Number(e.amountMl)||0); }, 0);
+  }
+
+  // ---------- Rendering: Header / Ring ----------
+  function renderHeader(){
+    var d = new Date();
+    el.dateLabel.textContent = d.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long' });
+
+    var key = todayKey();
+    var total = waterTotalForDay(key);
+    var goal = state.settings.waterGoal || 1500;
+    var pct = Math.max(0, Math.min(1, total / goal));
+    var offset = RING_CIRCUMFERENCE * (1 - pct);
+    el.ringFill.style.strokeDashoffset = offset;
+    el.ringVal.textContent = total;
+    el.ringGoalText.textContent = 'Ziel ' + goal + ' ml';
+
+    var dayEntries = entriesForDay(key);
+    var toiletCount = dayEntries.filter(function(e){ return e.type==='toilet'; }).length;
+    var leakCount = dayEntries.filter(function(e){ return e.type==='leak'; }).length;
+    el.ringExtra.textContent = toiletCount + ' Toilettengänge · ' + leakCount + ' Verluste heute';
+
+    if(dayEntries.length === 0){
+      el.lastEntryText.textContent = 'Noch kein Eintrag heute';
+      el.lastEntryPill.classList.remove('warn');
+    } else {
+      var last = dayEntries[dayEntries.length-1];
+      var lastDate = new Date(last.timestamp);
+      var hours = (Date.now() - lastDate.getTime()) / 36e5;
+      el.lastEntryText.textContent = 'Letzter Eintrag vor ' + fmtHoursAgo(hours);
+      if(state.settings.reminderEnabled && hours >= (state.settings.reminderIntervalHours||3)){
+        el.lastEntryPill.classList.add('warn');
+      } else {
+        el.lastEntryPill.classList.remove('warn');
+      }
+    }
+  }
+  function fmtHoursAgo(h){
+    if(h < 1) return Math.max(1, Math.round(h*60)) + ' Min.';
+    if(h < 24) return Math.round(h) + ' Std.';
+    return Math.round(h/24) + ' Tg.';
+  }
+
+  // ---------- Entry card HTML ----------
+  var ICONS = {
+    water: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69s-7 7.44-7 11.31a7 7 0 0 0 14 0c0-3.87-7-11.31-7-11.31z"></path></svg>',
+    leak: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69s-7 7.44-7 11.31a7 7 0 0 0 14 0c0-3.87-7-11.31-7-11.31z"></path></svg>',
+    toilet: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M6 12V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7"></path><path d="M5 12l1 8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-8"></path></svg>'
+  };
+  function entryTime(e){ return e.timestamp.slice(11,16); }
+  function entryCardHtml(e){
+    var title, meta, icon;
+    if(e.type === 'water'){
+      title = 'Trinken'; icon = ICONS.water; meta = (e.amountMl||0) + ' ml';
+    } else if(e.type === 'leak'){
+      title = 'Verlust'; icon = ICONS.leak;
+      meta = (e.activity ? e.activity : 'Aktivität unbekannt');
+      meta += e.note ? ' · ' + e.note : '';
+    } else {
+      title = 'Toilettengang'; icon = ICONS.toilet;
+      meta = 'Menge: ' + (e.toiletAmount||'–') + (e.amountMl ? ' (' + e.amountMl + ' ml)' : '');
+      meta += e.note ? ' · ' + e.note : '';
+    }
+    var sevPill = e.type === 'leak' && e.severity ? '<div class="sev-pill sev-'+e.severity+'">'+e.severity+'</div>' : '';
+    return '<div class="entry '+e.type+'" data-id="'+e.id+'">'
+      + '<div class="ic">'+icon+'</div>'
+      + '<div class="main">'
+        + '<div class="row1"><div class="title">'+title+'</div><div class="time">'+entryTime(e)+'</div></div>'
+        + '<div class="meta">'+escapeHtml(meta)+'</div>'
+        + sevPill
+      + '</div>'
+    + '</div>';
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  // ---------- Render: Today ----------
+  function renderToday(){
+    var key = todayKey();
+    var list = entriesForDay(key).slice().reverse();
+    el.todayCount.textContent = list.length ? (list.length + ' Einträge') : '';
+    if(list.length === 0){
+      el.todayList.innerHTML = '<div class="empty-state"><div class="ic">💧</div><p>Noch keine Einträge heute.<br>Oben antippen, um Trinken, Verlust oder Toilettengang einzutragen.</p></div>';
+      return;
+    }
+    el.todayList.innerHTML = list.map(entryCardHtml).join('');
+  }
+
+  // ---------- Render: History ----------
+  function renderHistory(){
+    var keys = Array.from(new Set(state.entries.map(function(e){ return e.timestamp.slice(0,10); })))
+      .sort().reverse();
+    if(keys.length === 0){
+      el.historyList.innerHTML = '<div class="empty-state"><div class="ic">🗂️</div><p>Noch keine Einträge vorhanden.</p></div>';
+      return;
+    }
+    el.historyList.innerHTML = keys.map(function(key){
+      var dayEntries = entriesForDay(key).slice().reverse();
+      var water = waterTotalForDay(key);
+      var leaks = dayEntries.filter(function(e){return e.type==='leak';}).length;
+      var toilets = dayEntries.filter(function(e){return e.type==='toilet';}).length;
+      return '<div class="day-group">'
+        + '<div class="day-header"><div class="dname">'+fmtDayLabel(key)+'</div>'
+        + '<div class="dsum">'+water+' ml · '+toilets+' Toilette · '+leaks+' Verlust</div></div>'
+        + dayEntries.map(entryCardHtml).join('')
+      + '</div>';
+    }).join('');
+  }
+
+  // ---------- Render: Report ----------
+  function currentRange(){
+    var from = el.repFrom.value, to = el.repTo.value;
+    return { from: from, to: to };
+  }
+  function entriesInRange(from, to){
+    return state.entries.filter(function(e){
+      var k = e.timestamp.slice(0,10);
+      return (!from || k >= from) && (!to || k <= to);
+    }).sort(function(a,b){ return a.timestamp.localeCompare(b.timestamp); });
+  }
+  function renderReport(){
+    var range = currentRange();
+    var list = entriesInRange(range.from, range.to);
+    var water = list.filter(function(e){return e.type==='water';}).reduce(function(s,e){return s+(Number(e.amountMl)||0);},0);
+    var leaks = list.filter(function(e){return e.type==='leak';}).length;
+    var toilets = list.filter(function(e){return e.type==='toilet';}).length;
+    el.reportSummary.innerHTML =
+      '<div class="stat"><b>'+water+'</b><span>ml Wasser gesamt</span></div>'
+      + '<div class="stat"><b>'+toilets+'</b><span>Toilettengänge</span></div>'
+      + '<div class="stat"><b>'+leaks+'</b><span>Verluste</span></div>';
+
+    if(list.length === 0){
+      el.reportList.innerHTML = '<div class="empty-state"><div class="ic">📄</div><p>Keine Einträge im gewählten Zeitraum.</p></div>';
+      return;
+    }
+    var byDay = {};
+    list.forEach(function(e){ var k=e.timestamp.slice(0,10); (byDay[k]=byDay[k]||[]).push(e); });
+    var keys = Object.keys(byDay).sort().reverse();
+    el.reportList.innerHTML = keys.map(function(key){
+      var dayEntries = byDay[key].slice().reverse();
+      return '<div class="day-group"><div class="day-header"><div class="dname">'+fmtDayLabel(key)+'</div></div>'
+        + dayEntries.map(entryCardHtml).join('') + '</div>';
+    }).join('');
+  }
+
+  // ---------- PDF export ----------
+  function exportPdf(){
+    var range = currentRange();
+    var list = entriesInRange(range.from, range.to);
+    if(list.length === 0){ showToast('Keine Einträge im Zeitraum'); return; }
+    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : null;
+    if(!jsPDFCtor){ showToast('PDF-Modul nicht geladen'); return; }
+    var doc = new jsPDFCtor({ unit:'pt', format:'a4' });
+    var pageW = doc.internal.pageSize.getWidth();
+    var margin = 42;
+    var y = 56;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(17);
+    doc.text('Blasentagebuch – Bericht', margin, y); y += 22;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+    var name = state.settings.patientName ? state.settings.patientName : '–';
+    doc.text('Für: ' + name, margin, y); y += 15;
+    var fromLbl = range.from || '–', toLbl = range.to || '–';
+    doc.text('Zeitraum: ' + fromLbl + '  bis  ' + toLbl, margin, y); y += 15;
+    doc.text('Erstellt am: ' + new Date().toLocaleDateString('de-DE'), margin, y); y += 22;
+
+    var water = list.filter(function(e){return e.type==='water';}).reduce(function(s,e){return s+(Number(e.amountMl)||0);},0);
+    var leaks = list.filter(function(e){return e.type==='leak';}).length;
+    var toilets = list.filter(function(e){return e.type==='toilet';}).length;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11.5);
+    doc.text('Übersicht: ' + water + ' ml Trinkmenge gesamt · ' + toilets + ' Toilettengänge · ' + leaks + ' Verluste', margin, y);
+    y += 24;
+
+    var byDay = {};
+    list.forEach(function(e){ var k=e.timestamp.slice(0,10); (byDay[k]=byDay[k]||[]).push(e); });
+    var keys = Object.keys(byDay).sort();
+
+    var colDate = margin, colTime = margin+70, colType = margin+115, colAmt = margin+205, colDetail = margin+280;
+    function header(){
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+      doc.text('Datum', colDate, y);
+      doc.text('Zeit', colTime, y);
+      doc.text('Kategorie', colType, y);
+      doc.text('Menge', colAmt, y);
+      doc.text('Details', colDetail, y);
+      y += 6;
+      doc.setDrawColor(180); doc.line(margin, y, pageW-margin, y);
+      y += 12;
+      doc.setFont('helvetica','normal');
+    }
+    function checkPageBreak(){
+      if(y > 780){ doc.addPage(); y = 50; header(); }
+    }
+
+    keys.forEach(function(key){
+      checkPageBreak();
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+      doc.text(fmtDayLabel(key) + '  (' + key + ')', margin, y); y += 14;
+      header();
+      byDay[key].sort(function(a,b){return a.timestamp.localeCompare(b.timestamp);}).forEach(function(e){
+        checkPageBreak();
+        var type, amt, detail;
+        if(e.type==='water'){ type='Trinken'; amt=(e.amountMl||0)+' ml'; detail=''; }
+        else if(e.type==='leak'){ type='Verlust ('+(e.severity||'-')+')'; amt='-'; detail=(e.activity||'unbekannt')+(e.note?(' – '+e.note):''); }
+        else { type='Toilette'; amt=(e.toiletAmount||'-')+(e.amountMl?(' / '+e.amountMl+'ml'):''); detail = e.note||''; }
+        doc.setFontSize(9.5);
+        doc.text(key.slice(8,10)+'.'+key.slice(5,7)+'.', colDate, y);
+        doc.text(entryTime(e), colTime, y);
+        doc.text(type, colType, y);
+        doc.text(String(amt), colAmt, y);
+        var detailLines = doc.splitTextToSize(detail, pageW - colDetail - margin);
+        doc.text(detailLines, colDetail, y);
+        y += Math.max(13, detailLines.length*11);
+      });
+      y += 10;
+    });
+
+    var fname = 'Blasentagebuch_' + (range.from||'gesamt') + '_bis_' + (range.to||'heute') + '.pdf';
+    doc.save(fname);
+    showToast('PDF erstellt');
+  }
+
+  // ---------- Tabs ----------
+  function switchTab(tab){
+    state.activeTab = tab;
+    document.getElementById('tabToday').style.display = tab==='today' ? '' : 'none';
+    document.getElementById('tabHistory').style.display = tab==='history' ? '' : 'none';
+    document.getElementById('tabReport').style.display = tab==='report' ? '' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    if(tab==='history') renderHistory();
+    if(tab==='report') renderReport();
+  }
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.addEventListener('click', function(){ switchTab(b.dataset.tab); });
+  });
+
+  // ---------- Sheets ----------
+  var sheets = ['sheetWater','sheetLeak','sheetToilet','sheetDetail','sheetSettings'].map(function(id){ return document.getElementById(id); });
+  function openSheet(id){
+    sheets.forEach(function(s){ s.classList.remove('show'); });
+    document.getElementById(id).classList.add('show');
+    el.overlay.classList.add('show');
+  }
+  function closeSheets(){
+    sheets.forEach(function(s){ s.classList.remove('show'); });
+    el.overlay.classList.remove('show');
+    state.editingEntryId = null;
+  }
+  el.overlay.addEventListener('click', closeSheets);
+
+  // ---------- Water sheet ----------
+  document.getElementById('btnAddWater').addEventListener('click', function(){
+    document.getElementById('waterAmount').value = '';
+    document.getElementById('waterTime').value = timeNow();
+    openSheet('sheetWater');
+    setTimeout(function(){ document.getElementById('waterAmount').focus(); }, 260);
+  });
+  document.getElementById('waterCancel').addEventListener('click', closeSheets);
+  document.getElementById('waterSave').addEventListener('click', async function(){
+    var amt = Number(document.getElementById('waterAmount').value);
+    var time = document.getElementById('waterTime').value || timeNow();
+    if(!amt || amt <= 0){ showToast('Bitte Menge eingeben'); return; }
+    var ts = todayKey() + 'T' + time + ':00';
+    state.entries.push({ id: uid(), type:'water', timestamp: ts, amountMl: amt });
+    await saveEntries();
+    closeSheets(); renderAll();
+    showToast('Eingetragen: ' + amt + ' ml');
+  });
+
+  // ---------- Leak sheet ----------
+  document.querySelectorAll('#leakSeverityRow .pill').forEach(function(p){
+    p.addEventListener('click', function(){
+      document.querySelectorAll('#leakSeverityRow .pill').forEach(function(x){ x.classList.remove('selected'); });
+      p.classList.add('selected');
+      state.leakSeverity = p.dataset.val;
+    });
+  });
+  document.getElementById('leakActivity').addEventListener('change', function(){
+    document.getElementById('leakActivityCustomWrap').style.display = this.value === '__custom' ? '' : 'none';
+  });
+  document.getElementById('btnAddLeak').addEventListener('click', function(){
+    state.leakSeverity = null;
+    document.querySelectorAll('#leakSeverityRow .pill').forEach(function(x){ x.classList.remove('selected'); });
+    document.getElementById('leakActivity').value = '';
+    document.getElementById('leakActivityCustomWrap').style.display = 'none';
+    document.getElementById('leakActivityCustom').value = '';
+    document.getElementById('leakNote').value = '';
+    document.getElementById('leakTime').value = timeNow();
+    openSheet('sheetLeak');
+  });
+  document.getElementById('leakCancel').addEventListener('click', closeSheets);
+  document.getElementById('leakSave').addEventListener('click', async function(){
+    if(!state.leakSeverity){ showToast('Bitte Stärke wählen'); return; }
+    var actSel = document.getElementById('leakActivity').value;
+    var activity = actSel === '__custom' ? document.getElementById('leakActivityCustom').value.trim() : actSel;
+    var time = document.getElementById('leakTime').value || timeNow();
+    var note = document.getElementById('leakNote').value.trim();
+    var ts = todayKey() + 'T' + time + ':00';
+    state.entries.push({ id: uid(), type:'leak', timestamp: ts, severity: state.leakSeverity, activity: activity, note: note });
+    await saveEntries();
+    closeSheets(); renderAll();
+    showToast('Verlust eingetragen');
+  });
+
+  // ---------- Toilet sheet ----------
+  document.querySelectorAll('#toiletAmountRow .pill').forEach(function(p){
+    p.addEventListener('click', function(){
+      document.querySelectorAll('#toiletAmountRow .pill').forEach(function(x){ x.classList.remove('selected'); });
+      p.classList.add('selected');
+      state.toiletAmount = p.dataset.val;
+    });
+  });
+  document.getElementById('btnAddToilet').addEventListener('click', function(){
+    state.toiletAmount = null;
+    document.querySelectorAll('#toiletAmountRow .pill').forEach(function(x){ x.classList.remove('selected'); });
+    document.getElementById('toiletMl').value = '';
+    document.getElementById('toiletNote').value = '';
+    document.getElementById('toiletTime').value = timeNow();
+    openSheet('sheetToilet');
+  });
+  document.getElementById('toiletCancel').addEventListener('click', closeSheets);
+  document.getElementById('toiletSave').addEventListener('click', async function(){
+    if(!state.toiletAmount){ showToast('Bitte Menge wählen'); return; }
+    var ml = document.getElementById('toiletMl').value ? Number(document.getElementById('toiletMl').value) : null;
+    var time = document.getElementById('toiletTime').value || timeNow();
+    var note = document.getElementById('toiletNote').value.trim();
+    var ts = todayKey() + 'T' + time + ':00';
+    state.entries.push({ id: uid(), type:'toilet', timestamp: ts, toiletAmount: state.toiletAmount, amountMl: ml, note: note });
+    await saveEntries();
+    closeSheets(); renderAll();
+    showToast('Toilettengang eingetragen');
+  });
+
+  // ---------- Entry detail / delete ----------
+  function bindEntryClicks(){
+    document.querySelectorAll('.entry').forEach(function(node){
+      node.addEventListener('click', function(){
+        var id = node.dataset.id;
+        var entry = state.entries.find(function(e){ return e.id === id; });
+        if(entry) openDetail(entry);
+      });
+    });
+  }
+  function openDetail(entry){
+    state.editingEntryId = entry.id;
+    var title, body;
+    var dateStr = entry.timestamp.slice(0,10).split('-').reverse().join('.');
+    if(entry.type === 'water'){
+      title = 'Trinken';
+      body = '<p style="margin:0 0 6px;"><b>'+dateStr+' · '+entryTime(entry)+'</b></p>'
+        + '<p style="margin:0;">'+entry.amountMl+' ml</p>';
+    } else if(entry.type === 'leak'){
+      title = 'Verlust';
+      body = '<p style="margin:0 0 6px;"><b>'+dateStr+' · '+entryTime(entry)+'</b></p>'
+        + '<p style="margin:0 0 4px;">Stärke: '+entry.severity+'</p>'
+        + '<p style="margin:0 0 4px;">Aktivität: '+(entry.activity||'–')+'</p>'
+        + (entry.note ? '<p style="margin:0;">Notiz: '+escapeHtml(entry.note)+'</p>' : '');
+    } else {
+      title = 'Toilettengang';
+      body = '<p style="margin:0 0 6px;"><b>'+dateStr+' · '+entryTime(entry)+'</b></p>'
+        + '<p style="margin:0 0 4px;">Menge: '+entry.toiletAmount+(entry.amountMl?(' ('+entry.amountMl+' ml)'):'')+'</p>'
+        + (entry.note ? '<p style="margin:0;">Notiz: '+escapeHtml(entry.note)+'</p>' : '');
+    }
+    document.getElementById('detailTitle').textContent = title;
+    document.getElementById('detailBody').innerHTML = body;
+    openSheet('sheetDetail');
+  }
+  document.getElementById('detailClose').addEventListener('click', closeSheets);
+  document.getElementById('detailDelete').addEventListener('click', async function(){
+    if(!state.editingEntryId) return;
+    state.entries = state.entries.filter(function(e){ return e.id !== state.editingEntryId; });
+    await saveEntries();
+    closeSheets(); renderAll();
+    showToast('Eintrag gelöscht');
+  });
+
+  // ---------- Settings ----------
+  document.getElementById('btnSettings').addEventListener('click', function(){
+    document.getElementById('setGoal').value = state.settings.waterGoal;
+    document.getElementById('setName').value = state.settings.patientName || '';
+    document.getElementById('setReminder').checked = !!state.settings.reminderEnabled;
+    document.getElementById('setInterval').value = state.settings.reminderIntervalHours || 3;
+    openSheet('sheetSettings');
+  });
+  document.getElementById('settingsClose').addEventListener('click', closeSheets);
+  document.getElementById('settingsSave').addEventListener('click', async function(){
+    var goal = Number(document.getElementById('setGoal').value) || 1500;
+    state.settings.waterGoal = goal;
+    state.settings.patientName = document.getElementById('setName').value.trim();
+    state.settings.reminderEnabled = document.getElementById('setReminder').checked;
+    state.settings.reminderIntervalHours = Number(document.getElementById('setInterval').value) || 3;
+    await saveSettings();
+    closeSheets(); renderAll();
+    showToast('Einstellungen gespeichert');
+    if(state.settings.reminderEnabled && 'Notification' in window && Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+  });
+
+  // ---------- Export / Import ----------
+  document.getElementById('btnExportData').addEventListener('click', function(){
+    var payload = {
+      exportedAt: new Date().toISOString(),
+      app: 'Blasentagebuch',
+      version: 1,
+      entries: state.entries,
+      settings: state.settings
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = todayKey();
+    a.href = url;
+    a.download = 'Blasentagebuch_Sicherung_' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    showToast('Sicherung heruntergeladen');
+  });
+
+  document.getElementById('btnImportData').addEventListener('click', function(){
+    document.getElementById('importFileInput').click();
+  });
+  document.getElementById('importFileInput').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = async function(evt){
+      try{
+        var data = JSON.parse(evt.target.result);
+        if(!data || !Array.isArray(data.entries)){ throw new Error('invalid'); }
+        var existingIds = new Set(state.entries.map(function(en){ return en.id; }));
+        var added = 0;
+        data.entries.forEach(function(en){
+          if(en && en.id && en.type && en.timestamp && !existingIds.has(en.id)){
+            state.entries.push(en);
+            existingIds.add(en.id);
+            added++;
+          }
+        });
+        if(data.settings && typeof data.settings === 'object'){
+          state.settings = Object.assign(state.settings, data.settings);
+        }
+        await saveEntries();
+        await saveSettings();
+        renderAll();
+        showToast(added + ' Einträge importiert');
+      }catch(err){
+        showToast('Datei ungültig, Import fehlgeschlagen');
+      }
+      e.target.value = '';
+    };
+    reader.onerror = function(){ showToast('Datei konnte nicht gelesen werden'); };
+    reader.readAsText(file);
+  });
+
+  // ---------- Reminder loop (best-effort, only while app is open) ----------
+  setInterval(function(){
+    if(!state.loaded || !state.settings.reminderEnabled) return;
+    var key = todayKey();
+    var dayEntries = entriesForDay(key);
+    if(dayEntries.length === 0) return;
+    var last = dayEntries[dayEntries.length-1];
+    var hours = (Date.now() - new Date(last.timestamp).getTime()) / 36e5;
+    if(hours >= (state.settings.reminderIntervalHours||3)){
+      renderHeader();
+      if('Notification' in window && Notification.permission === 'granted' && document.hidden){
+        try{ new Notification('Blasentagebuch', { body: 'Seit ' + fmtHoursAgo(hours) + ' kein Eintrag.' }); }catch(e){}
+      }
+    }
+  }, 5*60*1000);
+
+  // ---------- Report range change ----------
+  el.repFrom.addEventListener('change', renderReport);
+  el.repTo.addEventListener('change', renderReport);
+  document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
+
+  // ---------- Master render ----------
+  function renderAll(){
+    renderHeader();
+    if(state.activeTab === 'today') renderToday();
+    if(state.activeTab === 'history') renderHistory();
+    if(state.activeTab === 'report') renderReport();
+    bindEntryClicks();
+  }
+
+  // ---------- Init ----------
+  async function init(){
+    var today = todayKey();
+    el.repFrom.value = today;
+    el.repTo.value = today;
+    await loadData();
+    renderAll();
+  }
+  init();
+
+})();
+</script>
+</body>
+</html>
